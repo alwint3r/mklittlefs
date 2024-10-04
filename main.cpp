@@ -42,6 +42,7 @@ static uint32_t s_imageSize;
 static uint32_t s_pageSize;
 static uint32_t s_blockSize;
 static std::string s_fromFile;
+static uint8_t s_eraseValue;
 
 enum Action { ACTION_NONE, ACTION_PACK, ACTION_UNPACK, ACTION_LIST };
 static Action s_action = ACTION_NONE;
@@ -71,7 +72,7 @@ int lfs_flash_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
 
 int lfs_flash_erase(const struct lfs_config *c, lfs_block_t block)
 {
-  memset(&s_flashmem[0] + block * c->block_size, 0, c->block_size);
+  memset(&s_flashmem[0] + block * c->block_size, s_eraseValue, c->block_size);
   return 0;
 }
 
@@ -819,6 +820,7 @@ void processArgs(int argc, const char** argv) {
     TCLAP::SwitchArg addAllFilesArg( "a", "all-files", "when creating an image, include files which are normally ignored; currently only applies to '.DS_Store' files and '.git' directories", false);
     TCLAP::ValueArg<int> debugArg( "d", "debug", "Debug level. 0 means no debug output.", false, 0, "0-5" );
     TCLAP::ValueArg<std::string> fromFileArg( "T", "from-file", "when creating an image, include paths in from_file instead of scanning pack_dir", false, "", "from_file");
+		TCLAP::ValueArg<int> eraseValueArg( "e", "erase-value", "erase value for flash memory, default to 0", false, 0, "number" );
 
     cmd.add( imageSizeArg );
     cmd.add( pageSizeArg );
@@ -829,6 +831,7 @@ void processArgs(int argc, const char** argv) {
     std::vector<TCLAP::Arg*> args = {&packArg, &unpackArg, &listArg};
     cmd.xorAdd( args );
     cmd.add( outNameArg );
+		cmd.add( eraseValueArg );
     cmd.parse( argc, argv );
 
     if (debugArg.getValue() > 0) {
@@ -852,6 +855,12 @@ void processArgs(int argc, const char** argv) {
     s_pageSize  = pageSizeArg.getValue();
     s_blockSize = blockSizeArg.getValue();
     s_addAllFiles = addAllFilesArg.isSet();
+
+		int eraseValue = eraseValueArg.getValue();
+		if (eraseValue < 0 || eraseValue > 255) {
+			throw TCLAP::ArgException("Invalid erase value", "erase-value");
+		}
+		s_eraseValue = static_cast<uint8_t>(eraseValue);
 }
 
 int main(int argc, const char * argv[]) {
