@@ -532,7 +532,7 @@ bool dirCreate(const char* path) {
  * @author Pascal Gollor (http://www.pgollor.de/cms/)
  */
 bool unpackFile(const char *lfsDir, lfs_info *littlefsFile, const char *destPath) {
-    uint8_t buffer[littlefsFile->size];
+    std::vector<uint8_t> buffer(littlefsFile->size);
     std::string filename = lfsDir + std::string("/") + littlefsFile->name;
 
     // Open file from littlefs file system.
@@ -544,7 +544,7 @@ bool unpackFile(const char *lfsDir, lfs_info *littlefsFile, const char *destPath
     }
 
     // read content into buffer
-    lfs_file_read(&s_fs, &src, buffer, littlefsFile->size);
+    lfs_file_read(&s_fs, &src, buffer.data(), littlefsFile->size);
 
     // Close littlefs file.
     lfs_file_close(&s_fs, &src);
@@ -554,7 +554,7 @@ bool unpackFile(const char *lfsDir, lfs_info *littlefsFile, const char *destPath
     if (!dst) return false;
 
     // Write content into file.
-    fwrite(buffer, sizeof(uint8_t), sizeof(buffer), dst);
+    fwrite(buffer.data(), sizeof(uint8_t), buffer.size(), dst);
 
     // Close file.
     fclose(dst);
